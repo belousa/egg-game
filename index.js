@@ -28,7 +28,6 @@ function rampBelow(ramp) {
     if (ramp === ramps.rightTop) return ramps.rightBottom
 }
 
-
 class Basket {
     constructor(ramp) {
         this.ramp = ramp || ramps.leftBottom
@@ -102,6 +101,8 @@ let time = 0
 let eggsCaught = 0
 let eggsSplat = 0
 
+let isGameOver = false;
+
 class EggDefinition {
      constructor(ramp, speed, spawnDelay) {
         this.ramp = ramp || ramps.leftTop
@@ -144,7 +145,7 @@ class EggDefinition {
 
     despawn() {
         eggQueue.remove(this);
-        enqueueEgg()
+        if (!isGameOver) enqueueEgg()
         this.events.forEach(e => clearTimeout(e));
     }
 
@@ -210,8 +211,8 @@ function drawRamp (ramp) {
 }
 
 function drawUi() {
-    //ctx.j
-    //ctx.drawText
+    document.getElementById('caught').innerText = `${eggsCaught}`
+    document.getElementById('splatted').innerText = `${eggsSplat}`
 }
 
 function draw() {
@@ -295,7 +296,6 @@ const randomFloatInRange = (min, max) => {
 }
 
 function enqueueEgg() {
-    return
     const newEgg = new EggDefinition(
         //ramp
         rampsTable[randInt() % 2][randInt() % 2],
@@ -310,10 +310,20 @@ function enqueueEgg() {
 }
 
 
+function gameOver() {
+    ctx.font = "48px serif"
+    ctx.fillText("GAME OVER", 300, 300)
+    isGameOver = true;
+}
+
 function tick(callTime) {
     advanceTime(callTime)    
     draw()
-    requestAnimationFrame(tick);
+    if (eggsSplat >= 10) {
+        gameOver()
+    } else {
+        requestAnimationFrame(tick);
+    }
 }
 
 function start() {

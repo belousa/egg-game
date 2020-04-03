@@ -7,3 +7,7 @@ canvas {
 * {
   overflow: none !important;
 }
+
+.scoreboard {
+  display: inline-flex;
+}
