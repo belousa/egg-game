@@ -1,4 +1,9 @@
 
+Array.prototype.remove = function (elem) {
+    const indexInArray = this.findIndex(e => e === elem);
+    this.splice(indexInArray, 1);
+}
+
 let score = 0
 
 class Vec {
@@ -18,6 +23,12 @@ class Vec {
 
 const V = (...args) => new Vec(...args)
 
+function rampBelow(ramp) {
+    if (ramp === ramps.leftTop) return ramps.leftBottom
+    if (ramp === ramps.rightTop) return ramps.rightBottom
+}
+
+
 class Basket {
     constructor(ramp) {
         this.ramp = ramp || ramps.leftBottom
@@ -36,8 +47,7 @@ class Basket {
         if (this.ramp === ramps.rightBottom) this.ramp = ramps.rightTop
     }
     down = () => {
-        if (this.ramp === ramps.leftTop) this.ramp = ramps.leftBottom
-        if (this.ramp === ramps.rightTop) this.ramp = ramps.rightBottom
+        this.ramp = rampBelow(this.ramp) ?? this.ramp
     }
 }
 
@@ -81,7 +91,7 @@ const rampLength = 100
 const distanceTopToBottomRamp = 30
 const distanceBottomRampToGround = 30
 
-const fallVelocity = 0.5
+const fallVelocity = 0.2
 
 const flightTimeTopToBottomRamp =  distanceTopToBottomRamp / fallVelocity
 const flightTimeBottomRampToGround = distanceBottomRampToGround / fallVelocity
@@ -89,18 +99,27 @@ const flightTimeBottomRampToGround = distanceBottomRampToGround / fallVelocity
 
 let time = 0
 
+let eggsCaught = 0
+let eggsSplat = 0
+
 class EggDefinition {
      constructor(ramp, speed, spawnDelay) {
         this.ramp = ramp || ramps.leftTop
         this.speed = speed || 1.0
         this.spawnTime = time
-        setTimeout(() => this.die(), this.deathTime())
-        setTimeout(() => this.firstChanceCatch(), this.firstChanceCatchTime())
-        if (this.doesSpawnTop())
-            setTimeout(
-                () => this.secondChanceCatch(),
-                this.secondChanceCatchTime()
-            )
+        this.events = [
+            setTimeout(() => this.splat(), this.deathTime()),
+            setTimeout(() => this.firstChanceCatch(), this.firstChanceCatchTime()),
+        ];
+        if (this.doesSpawnTop()) {
+            this.events.push(setTimeout(() => this.secondChanceCatch(), this.secondChanceCatchTime()))
+        }
+        console.log({
+            spawn: this.spawnTime,
+            firstChance: this.firstChanceCatchTime(),
+            secondChance: this.secondChanceCatchTime(),
+            splatTime: this.deathTime(),
+        })
     }
 
     doesSpawnTop() {
@@ -112,7 +131,7 @@ class EggDefinition {
     }
 
     secondChanceCatchTime() {
-        return this. firstChanceCatchTime() + flightTimeTopToBottomRamp
+        return this.firstChanceCatchTime() + flightTimeTopToBottomRamp
     }
 
     // egg lands/breaks
@@ -123,16 +142,36 @@ class EggDefinition {
         return this.firstChanceCatchTime() + flightTime
     }
 
-    die() {
-        const indexInQueue = eggQueue.findIndex(e => e === this);
-        eggQueue.splice(indexInQueue, 1);
+    despawn() {
+        eggQueue.remove(this);
         enqueueEgg()
+        this.events.forEach(e => clearTimeout(e));
+    }
+
+    caught() {
+        eggsCaught += 1
+        this.despawn();
+    }
+
+    splat() {
+        console.log('splat', { spawnTime: this.spawnTime, current: time })
+        eggsSplat += 1
+        this.despawn();
     }
 
     firstChanceCatch() {
+        console.log('first', { spawnTime: this.spawnTime, current: time })
+        if (this.ramp === basket.ramp) {
+            this.caught();
+        }
     }
 
     secondChanceCatch() {
+        console.log('second', { spawnTime: this.spawnTime, current: time })
+        const secondChanceRamp = rampBelow(this.ramp)
+        if (basket.ramp === secondChanceRamp) {
+            this.caught();
+        }
     }
 }
 
@@ -170,11 +209,17 @@ function drawRamp (ramp) {
     ctx.stroke()
 }
 
+function drawUi() {
+    //ctx.j
+    //ctx.drawText
+}
+
 function draw() {
     ctx.clearRect(0,0, canvasElem.width, canvasElem.height)
     eggQueue.forEach(drawEgg)
     rampsTable.forEach(row => row.forEach(drawRamp))
     drawBasket()
+    drawUi()
 }
 
 function position(egg) {
@@ -250,6 +295,7 @@ const randomFloatInRange = (min, max) => {
 }
 
 function enqueueEgg() {
+    return
     const newEgg = new EggDefinition(
         //ramp
         rampsTable[randInt() % 2][randInt() % 2],
