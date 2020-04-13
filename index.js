@@ -1,7 +1,7 @@
 
 Array.prototype.remove = function (elem) {
-    const indexInArray = this.findIndex(e => e === elem);
-    this.splice(indexInArray, 1);
+    const indexInArray = this.findIndex(e => e === elem)
+    if (indexInArray >= 0) this.splice(indexInArray, 1)
 }
 
 let score = 0
@@ -76,7 +76,10 @@ function isRightRamp(ramp) {
 
 const basket = new Basket()
 const basketImage = new Image(2, 2)
+const basketSize = 50
 basketImage.src = './basket.svg'
+basket.width = basketSize;
+basket.height = basketSize;
 
 const groundLevel = 600
 
@@ -104,18 +107,19 @@ let eggsSplat = 0
 let isGameOver = false;
 
 class EggDefinition {
-     constructor(ramp, speed, spawnDelay) {
+    constructor(ramp, speed, spawnDelay) {
         this.ramp = ramp || ramps.leftTop
         this.speed = speed || 1.0
-        this.spawnTime = time
+        this.spawnTime = time + spawnDelay
         this.events = [
-            setTimeout(() => this.splat(), this.deathTime()),
-            setTimeout(() => this.firstChanceCatch(), this.firstChanceCatchTime()),
+            setTimeout(() => this.spawn(), spawnDelay),
+            setTimeout(() => this.splat(), this.deathTime() - time),
+            setTimeout(() => this.firstChanceCatch(), this.firstChanceCatchTime() - time),
         ];
         if (this.doesSpawnTop()) {
-            this.events.push(setTimeout(() => this.secondChanceCatch(), this.secondChanceCatchTime()))
+            this.events.push(setTimeout(() => this.secondChanceCatch(), this.secondChanceCatchTime() - time))
         }
-        console.log({
+        console.log('construct', {
             spawn: this.spawnTime,
             firstChance: this.firstChanceCatchTime(),
             secondChance: this.secondChanceCatchTime(),
@@ -143,10 +147,16 @@ class EggDefinition {
         return this.firstChanceCatchTime() + flightTime
     }
 
+    spawn() {
+        eggSpawnQueue.remove(this)
+        liveEggs.push(this)
+        if (!isGameOver) enqueueEggSpawn()
+    }
+
     despawn() {
-        eggQueue.remove(this);
-        if (!isGameOver) enqueueEgg()
-        this.events.forEach(e => clearTimeout(e));
+        liveEggs.remove(this)
+        eggSpawnQueue.remove(this)
+        this.events.forEach(e => clearTimeout(e))
     }
 
     caught() {
@@ -177,11 +187,11 @@ class EggDefinition {
 }
 
 
-const eggQueue = [
+const eggSpawnQueue = [
     new EggDefinition(ramps.leftTop, 0.1, 0),
-    new EggDefinition(ramps.rightTop, 0.2, 2.0),
-    new EggDefinition(ramps.leftBottom, 0.05, 3.0),
-    new EggDefinition(ramps.rightBottom, 0.13, 3.7),
+    new EggDefinition(ramps.rightTop, 0.2, 2000),
+    new EggDefinition(ramps.leftBottom, 0.05, 3000),
+    new EggDefinition(ramps.rightBottom, 0.13, 3700),
 ]
 
 const liveEggs = []
@@ -217,7 +227,8 @@ function drawUi() {
 
 function draw() {
     ctx.clearRect(0,0, canvasElem.width, canvasElem.height)
-    eggQueue.forEach(drawEgg)
+
+    liveEggs.forEach(drawEgg)
     rampsTable.forEach(row => row.forEach(drawRamp))
     drawBasket()
     drawUi()
@@ -254,8 +265,6 @@ function fallPosition(egg) {
     return [x,y]
 }
 
-const basketSize = 50
-
 function drawBasket() {
     let {x,y} = basket.ramp.to;
     if (isRightRamp(basket.ramp)) x -= basketSize
@@ -275,7 +284,7 @@ const zip = (...rows) => rows[0].map((_,c) => rows.map(row => row[c]))
 
 function computeQueueDifficulty() {
     let cumulativeDifficulty = 1
-    for (const [egg, nextEgg] of zip(eggQueue.slice(0, -1), eggQueue.slice(1))) {
+    for (const [egg, nextEgg] of zip(eggSpawnQueue.slice(0, -1), eggSpawnQueue.slice(1))) {
         cumulativeDifficulty += 0
     }
 }
@@ -286,7 +295,7 @@ const minEggSpeed = 0.02
 const maxEggSpeed = 0.2
 
 const minEggSpawnDelay = 0
-const maxEggSpawnDelay = 3.0
+const maxEggSpawnDelay = 3000
 
 const clamp = (val, min, max) => Math.min(max, Math.max(val, min))
 
@@ -295,7 +304,7 @@ const randomFloatInRange = (min, max) => {
     return min + Math.random() * range;
 }
 
-function enqueueEgg() {
+function enqueueEggSpawn() {
     const newEgg = new EggDefinition(
         //ramp
         rampsTable[randInt() % 2][randInt() % 2],
@@ -305,8 +314,7 @@ function enqueueEgg() {
         randomFloatInRange(minEggSpawnDelay, maxEggSpawnDelay)
     )
     const queueDifficulty = computeQueueDifficulty()
-    //multiply
-    eggQueue.push(newEgg)
+    eggSpawnQueue.push(newEgg)
 }
 
 
