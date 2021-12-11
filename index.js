@@ -4,6 +4,8 @@ Array.prototype.remove = function (elem) {
     if (indexInArray >= 0) this.splice(indexInArray, 1)
 }
 
+const zip = (...rows) => rows[0].map((_,c) => rows.map(row => row[c]))
+
 let score = 0
 
 class Vec {
@@ -280,13 +282,21 @@ function advanceTime(callTime) {
     lastCallTime = callTime;
 }
 
-const zip = (...rows) => rows[0].map((_,c) => rows.map(row => row[c]))
+const intendedDifficulty = 1;
+function computeLevelSpawnQueue() {
+    const 
+}
 
-function computeQueueDifficulty() {
+function computeQueueDifficulty(queue) {
     let cumulativeDifficulty = 1
+    const queue = [...queue];
+    queue.sort((prev, next) => prev.firstChanceCatchTime() - next.firstChanceCatchTime())
     for (const [egg, nextEgg] of zip(eggSpawnQueue.slice(0, -1), eggSpawnQueue.slice(1))) {
-        cumulativeDifficulty += 0
+        if (egg.doesSpawnTop()) {
+            const deathTimes = [egg.firstChanceCatchTime(), egg.secondChanceCatchTime()]
+        }
     }
+    return 1;
 }
 
 const randInt = () => Math.round(Number.MAX_SAFE_INTEGER * Math.random())
@@ -313,7 +323,7 @@ function enqueueEggSpawn() {
         //spawnDelay
         randomFloatInRange(minEggSpawnDelay, maxEggSpawnDelay)
     )
-    const queueDifficulty = computeQueueDifficulty()
+    const queueDifficulty = computeQueueDifficulty([...queue.slice(1), newEgg])
     eggSpawnQueue.push(newEgg)
 }
 
@@ -349,4 +359,4 @@ document.addEventListener('keydown', evt => {
     if (evt.key in keyMap) keyMap[evt.key]()
 })
 
-start()
+//start()
